@@ -1,57 +1,75 @@
+// Package user содержит доменную модель пользователя и связанные бизнес-правила.
 package user
 
 import (
-	"fmt"
+	"errors"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/srunas/market-ddd-cqrs-layout/internal/domain/types"
 )
 
-type UserRole string
+// Role UserRole определяет роль пользователя в системе.
+type Role string
 
 const (
-	UserRoleAdmin UserRole = "ADMIN"
-	UserRoleBuyer UserRole = "BUYER"
+
+	// RoleBuyer — роль обычного покупателя.
+	RoleBuyer Role = "BUYER"
 )
 
+// User представляет зарегистрированного пользователя системы.
 type User struct {
-	ID        uuid.UUID
+	ID        types.UserID
 	Username  string
 	Surname   string
-	Role      UserRole
-	AuthAt    time.Time
+	Role      Role
+	AuthAt    time.Time // Время последней успешной аутентификации
 	CreatedAt time.Time
 	Email     string
 	Enabled   bool
 }
 
-func NewUser(username, surname, email string, role UserRole) (*User, error) {
-	if username == "" || email == "" {
-		return nil, fmt.Errorf("Username or email is empty")
+// New создаёт нового пользователя с минимальной валидацией.
+func New(username, surname, email string, role Role) (*User, error) {
+	if username == "" {
+		return nil, errors.New("username is required")
 	}
+	if email == "" {
+		return nil, errors.New("email is required")
+	}
+
 	return &User{
-		ID:        uuid.New(),
+		ID:        types.NewUserID(),
 		Username:  username,
 		Surname:   surname,
 		Role:      role,
 		Email:     email,
 		Enabled:   true,
-		CreatedAt: time.Now(),
+		CreatedAt: time.Now().UTC(),
 	}, nil
 }
 
-func (u *User) UpdateRole(newRole UserRole) {
+// UpdateRole меняет роль пользователя.
+func (u *User) UpdateRole(newRole Role) {
 	u.Role = newRole
+	// В будущем здесь может быть логика: проверка допустимых переходов, событие RoleChanged и т.д.
 }
 
+// UpdateUsername обновляет имя пользователя.
 func (u *User) UpdateUsername(newUsername string) {
-	u.Username = newUsername
+	if newUsername != "" {
+		u.Username = newUsername
+	}
 }
 
+// UpdateSurname обновляет фамилию пользователя.
 func (u *User) UpdateSurname(newSurname string) {
-	u.Surname = newSurname
+	u.Surname = newSurname // можно добавить валидацию длины и т.д.
 }
 
+// UpdateEmail обновляет email пользователя.
 func (u *User) UpdateEmail(newEmail string) {
-	u.Email = newEmail
+	if newEmail != "" {
+		u.Email = newEmail
+	}
 }
