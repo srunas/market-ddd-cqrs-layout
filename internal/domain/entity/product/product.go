@@ -1,19 +1,15 @@
 package product
 
 import (
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+	"github.com/srunas/market-ddd-cqrs-layout/internal/domain/types"
 )
 
 type Status string
-
-const (
-	StatusActive   Status = "active"
-	StatusInactive Status = "inactive"
-)
 
 type Currency string
 
@@ -23,7 +19,7 @@ const (
 )
 
 type Product struct {
-	ID          uuid.UUID
+	ID          types.ProductID
 	Name        string
 	Description string
 	Price       decimal.Decimal
@@ -37,35 +33,35 @@ type Product struct {
 	Status      Status
 }
 
-func NewProduct(name, description string, price decimal.Decimal, currency Currency, sellerID uuid.UUID) (*Product, error) {
+func New(name, description string, price decimal.Decimal, currency Currency, sellerID uuid.UUID) (*Product, error) {
 	if name == "" || price.LessThanOrEqual(decimal.Zero) {
-		return nil, fmt.Errorf("name or price must be greater than zero")
+		return nil, errors.New("name or price must be greater than zero")
 	}
 	return &Product{
-		ID:          uuid.New(),
+		ID:          types.NewProductID(),
 		Name:        name,
 		Description: description,
 		Price:       price,
-		CreatedAt:   time.Now(),
+		CreatedAt:   time.Now().UTC(),
 		Currency:    currency,
 		Stock:       0,
 		SellerID:    sellerID,
 		CategoryIDs: []uuid.UUID{},
 		Attributes:  make(map[string]interface{}),
-		UpdatedAt:   time.Now(),
+		UpdatedAt:   time.Now().UTC(),
 	}, nil
 }
 
 func (p *Product) AddCategory(categoryID uuid.UUID) {
 	p.CategoryIDs = append(p.CategoryIDs, categoryID)
-	p.UpdatedAt = time.Now()
+	p.UpdatedAt = time.Now().UTC()
 }
 
 func (p *Product) UpdateStock(delta int) error {
 	if p.Stock+delta < 0 {
-		return fmt.Errorf("stock cannot be negative")
+		return errors.New("stock cannot be negative")
 	}
 	p.Stock += delta
-	p.UpdatedAt = time.Now()
+	p.UpdatedAt = time.Now().UTC()
 	return nil
 }
