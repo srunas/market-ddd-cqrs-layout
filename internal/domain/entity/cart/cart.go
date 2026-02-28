@@ -3,44 +3,66 @@ package cart
 import (
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/srunas/market-ddd-cqrs-layout/internal/domain/types"
 )
 
 type Cart struct {
-	ID        uuid.UUID
-	BuyerID   uuid.UUID
+	ID        types.CartID
+	BuyerID   types.UserID
 	CreatedAt time.Time
 	Items     []CartItem
 }
 
 type CartItem struct {
-	ProductID uuid.UUID
-	Quantity  int
+	ProductID types.ProductID
+	Quantity  int64
 }
 
-func NewCart(buyerID uuid.UUID, createdAt time.Time) *Cart {
+func New(buyerID types.UserID) *Cart {
 	return &Cart{
-		ID:        uuid.New(),
+		ID:        types.NewCartID(),
 		BuyerID:   buyerID,
-		CreatedAt: createdAt,
+		CreatedAt: time.Now().UTC(),
 		Items:     []CartItem{},
 	}
 }
 
-func (c *Cart) AddItem(productID uuid.UUID, quantity int) {
-	for i, item := range c.Items {
-		if item.ProductID == productID {
+func (c *Cart) AddItem(productID types.ProductID, quantity int64) {
+	if quantity <= 0 {
+		return
+	}
+
+	for i := range c.Items {
+		if c.Items[i].ProductID == productID {
 			c.Items[i].Quantity += quantity
 			return
 		}
 	}
-	c.Items = append(c.Items, CartItem{ProductID: productID, Quantity: quantity})
+	c.Items = append(c.Items, CartItem{
+		ProductID: productID,
+		Quantity:  quantity,
+	})
 }
 
-func (c *Cart) RemoveItem(productID uuid.UUID, quantity int) {
+func (c *Cart) RemoveItem(productID types.ProductID) {
 	for i, item := range c.Items {
 		if item.ProductID == productID {
 			c.Items = append(c.Items[:i], c.Items[i+1:]...)
+			return
+		}
+	}
+}
+
+func (c *Cart) DecreaseQuantity(productID types.ProductID, quantity int64) {
+	if quantity <= 0 {
+		return
+	}
+	for i := range c.Items {
+		if c.Items[i].ProductID == productID {
+			c.Items[i].Quantity -= quantity
+			if c.Items[i].Quantity <= 0 {
+				c.Items = append(c.Items[:i], c.Items[i+1:]...)
+			}
 			return
 		}
 	}
