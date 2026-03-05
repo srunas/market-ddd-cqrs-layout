@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: mypostgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: my-go-server
+    ports:
+      - "${APP_PORT}:8080"
+    environment:
+      - DB_URI=${DB_URI}
+      - MIGRATIONS_DIR=${MIGRATIONS_DIR}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  pgdata:
