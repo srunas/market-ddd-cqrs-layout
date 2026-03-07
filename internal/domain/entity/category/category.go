@@ -23,14 +23,18 @@ type Category struct {
 	Status    Status
 }
 
-func New(name string, parentID *types.CategoryID) (*Category, error) {
+func New(name string, parent *Category) (*Category, error) {
 	if name == "" {
 		return nil, errors.New("name is required")
 	}
 	level := 0
-	if parentID != nil {
-		level = 1
+	var parentID *types.CategoryID
+
+	if parent != nil {
+		level = parent.Level + 1
+		parentID = &parent.ID
 	}
+
 	return &Category{
 		ID:        types.NewCategoryID(),
 		Name:      name,
