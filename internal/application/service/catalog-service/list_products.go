@@ -20,6 +20,8 @@ func (s *Implementation) ListProducts(
 		MinPrice:   req.MinPrice,
 		MaxPrice:   req.MaxPrice,
 		Status:     req.Status,
+		Limit:      req.PageSize,
+		Offset:     (req.Page - 1) * req.PageSize,
 	}
 	products, err := s.productRepo.GetProductList(ctx, filter)
 	if err != nil {

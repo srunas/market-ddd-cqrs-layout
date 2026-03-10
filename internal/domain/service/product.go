@@ -41,6 +41,8 @@ type ListProductsRequest struct {
 	Status     *product.Status
 	MinPrice   *decimal.Decimal
 	MaxPrice   *decimal.Decimal
+	Page       int
+	PageSize   int
 }
 
 type ListProductsResponse struct {

@@ -7,6 +7,9 @@ import (
 	"github.com/srunas/market-ddd-cqrs-layout/internal/domain/service"
 )
 
+// PublishProduct переводит товар из статуса DRAFT в PUBLISHED.
+// Публикация возможна только если у товара есть остаток на складе
+// и привязана хотя бы одна категория.
 func (s *Implementation) PublishProduct(
 	ctx context.Context,
 	req service.PublishProductRequest,
@@ -25,9 +28,7 @@ func (s *Implementation) PublishProduct(
 		return service.PublishProductResponse{}, err
 	}
 
-	err = s.txManager.Do(ctx, func(ctx context.Context) error {
-		return s.productRepo.Update(ctx, product)
-	})
+	err = s.productRepo.Update(ctx, product)
 
 	if err != nil {
 		return service.PublishProductResponse{}, err

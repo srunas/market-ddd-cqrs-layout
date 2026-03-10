@@ -3,7 +3,7 @@ module github.com/srunas/market-ddd-cqrs-layout
 go 1.25.3
 
 require (
-	github.com/avito-tech/go-transaction-manager v1.5.1
+	github.com/avito-tech/go-transaction-manager/trm/v2 v2.0.2
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/not-for-prod/observer v0.0.7

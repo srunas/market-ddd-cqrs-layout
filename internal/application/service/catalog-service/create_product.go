@@ -2,6 +2,7 @@ package catalog_service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/not-for-prod/observer/tracer/prospan"
 	"github.com/srunas/market-ddd-cqrs-layout/internal/domain/entity/product"
@@ -21,21 +22,21 @@ func (s *Implementation) CreateProduct(
 		req.Price,
 		req.Currency,
 		req.SellerID,
+		req.CategoryIDs,
 	)
 	if err != nil {
 		return service.CreateProductResponse{}, err
 	}
 
-	for _, catID := range req.CategoryIDs {
-		err = productNew.AddCategory(catID)
+	for _, categoryID := range req.CategoryIDs {
+		_, err = s.category.FindByID(ctx, categoryID)
 		if err != nil {
-			return service.CreateProductResponse{}, err
+			return service.CreateProductResponse{},
+				fmt.Errorf("категория %v не найдена: %w", categoryID, err)
 		}
 	}
 
-	err = s.txManager.Do(ctx, func(ctx context.Context) error {
-		return s.productRepo.Save(ctx, productNew)
-	})
+	err = s.productRepo.Save(ctx, productNew)
 
 	if err != nil {
 		return service.CreateProductResponse{}, err

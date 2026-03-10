@@ -13,6 +13,8 @@ type ProductFilter struct {
 	Status     *product.Status
 	MinPrice   *decimal.Decimal
 	MaxPrice   *decimal.Decimal
+	Limit      int
+	Offset     int
 }
 
 type Product interface {

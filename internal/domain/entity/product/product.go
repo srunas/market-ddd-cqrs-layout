@@ -38,7 +38,13 @@ type Product struct {
 	Status      Status
 }
 
-func New(name, description string, price decimal.Decimal, currency Currency, sellerID types.UserID) (*Product, error) {
+func New(
+	name, description string,
+	price decimal.Decimal,
+	currency Currency,
+	sellerID types.UserID,
+	categoryIDs []types.CategoryID,
+) (*Product, error) {
 	if name == "" || price.LessThanOrEqual(decimal.Zero) {
 		return nil, errors.New("name or price must be greater than zero")
 	}
@@ -51,7 +57,7 @@ func New(name, description string, price decimal.Decimal, currency Currency, sel
 		Currency:    currency,
 		Stock:       0,
 		SellerID:    sellerID,
-		CategoryIDs: []types.CategoryID{},
+		CategoryIDs: categoryIDs,
 		Attributes:  make(map[string]interface{}),
 		UpdatedAt:   time.Now().UTC(),
 	}, nil

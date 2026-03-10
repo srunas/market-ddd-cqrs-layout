@@ -16,22 +16,24 @@ func (s *Implementation) CreateCategory(
 	ctx, span := prospan.Start(ctx)
 	defer span.End()
 
-	var parent *category.Category
-	var err error
+	var newCategory *category.Category
 
-	if req.ParentID != nil {
-		parent, err = s.category.FindByID(ctx, *req.ParentID)
-		if err != nil {
-			return service.CreateCategoryResponse{}, err
+	err := s.txManager.Do(ctx, func(ctx context.Context) error {
+		var parent *category.Category
+		var err error
+
+		if req.ParentID != nil {
+			parent, err = s.category.FindByIDForUpdate(ctx, *req.ParentID)
+			if err != nil {
+				return fmt.Errorf("родительская категория не найдена: %w", err)
+			}
 		}
-	}
 
-	newCategory, err := category.New(req.Name, parent)
-	if err != nil {
-		return service.CreateCategoryResponse{}, fmt.Errorf("ошибка создания категорий: %w", err)
-	}
+		newCategory, err = category.New(req.Name, parent)
+		if err != nil {
+			return err
+		}
 
-	err = s.txManager.Do(ctx, func(ctx context.Context) error {
 		return s.category.Save(ctx, newCategory)
 	})
 
@@ -39,7 +41,5 @@ func (s *Implementation) CreateCategory(
 		return service.CreateCategoryResponse{}, err
 	}
 
-	return service.CreateCategoryResponse{
-		ID: newCategory.ID,
-	}, nil
+	return service.CreateCategoryResponse{ID: newCategory.ID}, nil
 }
