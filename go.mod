@@ -4,6 +4,7 @@ go 1.25.3
 
 require (
 	github.com/avito-tech/go-transaction-manager/trm/v2 v2.0.2
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/not-for-prod/observer v0.0.7
