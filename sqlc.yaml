@@ -1,0 +1,18 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "internal/infrastructure/repository/query"
+    schema: "migration"
+    gen:
+      go:
+        package: "sqlcgen"
+        out: "internal/infrastructure/repository/sqlcgen"
+        emit_json_tags: false
+        overrides:
+          - db_type: "uuid"
+            go_type: "github.com/google/uuid.UUID"
+          - db_type: "numeric"
+            go_type: "github.com/shopspring/decimal.Decimal"
+          - db_type: "numeric"
+            nullable: true
+            go_type: "github.com/shopspring/decimal.Decimal"

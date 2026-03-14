@@ -2,66 +2,87 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
+	trmsqldb "github.com/avito-tech/go-transaction-manager/drivers/sql/v2"
+	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
+	cart_service "github.com/srunas/market-ddd-cqrs-layout/internal/application/service/cart-service"
+	catalog_service "github.com/srunas/market-ddd-cqrs-layout/internal/application/service/catalog-service"
+	identity_service "github.com/srunas/market-ddd-cqrs-layout/internal/application/service/identity-service"
+	order_service "github.com/srunas/market-ddd-cqrs-layout/internal/application/service/order-service"
+	infra "github.com/srunas/market-ddd-cqrs-layout/internal/infrastructure/repository"
 	"github.com/srunas/market-ddd-cqrs-layout/internal/migrator"
 )
 
 const (
-	readTimeout    = 10 * time.Second
-	writeTimeout   = 10 * time.Second
-	idleTimeout    = 120 * time.Second
-	requestTimeout = 5 * time.Second
+	readTimeout  = 10 * time.Second
+	writeTimeout = 10 * time.Second
+	idleTimeout  = 120 * time.Second
 )
-
-// User represents a system user entity.
-type User struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	// #nosec G117 -- This is a JSON model field, not a hardcoded password
-	Password  string    `json:"password"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Role      string    `json:"role"`
-}
 
 func main() {
 	if err := run(); err != nil {
-		log.Printf("Shutting down with error: %v", err)
+		log.Printf("завершение с ошибкой: %v", err)
 		os.Exit(1)
 	}
 }
 
 func run() error {
 	ctx := context.Background()
-	dbURI := os.Getenv("DB_URI")
 
-	pool, err := pgxpool.New(ctx, dbURI)
+	// — База данных —
+	pool, err := pgxpool.New(ctx, os.Getenv("DB_URI"))
 	if err != nil {
-		return fmt.Errorf("failed to create pool: %w", err)
+		return fmt.Errorf("ошибка создания пула: %w", err)
 	}
 	defer pool.Close()
 
-	if pErr := pool.Ping(ctx); pErr != nil {
-		return fmt.Errorf("failed to ping db: %w", pErr)
+	if err = pool.Ping(ctx); err != nil {
+		return fmt.Errorf("ошибка подключения к БД: %w", err)
 	}
 
-	dbSql := stdlib.OpenDB(*pool.Config().ConnConfig)
-	m := migrator.NewMigrator(dbSql, os.Getenv("MIGRATIONS_DIR"))
-
-	if mErr := m.Up(); mErr != nil {
-		return fmt.Errorf("migration failed: %w", mErr)
+	// — Миграции —
+	dbSQL := stdlib.OpenDB(*pool.Config().ConnConfig)
+	m := migrator.NewMigrator(dbSQL, os.Getenv("MIGRATIONS_DIR"))
+	if err = m.Up(); err != nil {
+		return fmt.Errorf("ошибка миграции: %w", err)
 	}
 
+	// — Transaction manager —
+	txManager, err := manager.New(trmsqldb.NewDefaultFactory(dbSQL))
+	if err != nil {
+		return fmt.Errorf("ошибка создания tx manager: %w", err)
+	}
+
+	// — Репозитории —
+	userRepo := infra.NewUserRepository(pool)
+	authRepo := infra.NewAuthRepository(pool)
+	productRepo := infra.NewProductRepository(pool)
+	categoryRepo := infra.NewCategoryRepository(pool)
+	cartRepo := infra.NewCartRepository(pool)
+	orderRepo := infra.NewOrderRepository(pool)
+
+	// — Сервисы —
+	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
+
+	identitySvc := identity_service.NewImplementation(userRepo, authRepo, txManager, jwtSecret)
+	catalogSvc := catalog_service.NewImplementation(categoryRepo, productRepo, txManager)
+	cartSvc := cart_service.NewImplementation(cartRepo, productRepo, txManager)
+	orderSvc := order_service.NewImplementation(orderRepo, cartRepo, productRepo, txManager)
+
+	_ = identitySvc
+	_ = catalogSvc
+	_ = cartSvc
+	_ = orderSvc
+
+	// — HTTP сервер —
 	mux := http.NewServeMux()
-	mux.HandleFunc("/users", createUserHandler(pool))
 
 	server := &http.Server{
 		Addr:         ":8080",
@@ -71,40 +92,6 @@ func run() error {
 		IdleTimeout:  idleTimeout,
 	}
 
-	log.Println("Server starting on :8080")
+	log.Println("сервер запущен на :8080")
 	return server.ListenAndServe()
-}
-
-// createUserHandler returns a handler for user creation.
-func createUserHandler(db *pgxpool.Pool) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
-			return
-		}
-
-		var user User
-		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-			http.Error(w, "Некорректный JSON", http.StatusBadRequest)
-			return
-		}
-
-		if user.Role == "" {
-			user.Role = "BUYER"
-		}
-
-		ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
-		defer cancel()
-
-		query := `INSERT INTO users (username, email, role) VALUES ($1, $2, $3)`
-		_, err := db.Exec(ctx, query, user.Username, user.Email, user.Role)
-		if err != nil {
-			log.Printf("Ошибка вставки в базу: %v", err)
-			http.Error(w, "Ошибка сервера", http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusCreated)
-		_, _ = fmt.Fprintln(w, "Пользователь успешно создан")
-	}
 }

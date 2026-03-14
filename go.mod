@@ -3,13 +3,16 @@ module github.com/srunas/market-ddd-cqrs-layout
 go 1.25.3
 
 require (
+	github.com/avito-tech/go-transaction-manager/drivers/sql/v2 v2.0.2
 	github.com/avito-tech/go-transaction-manager/trm/v2 v2.0.2
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.8.0
+	github.com/lib/pq v1.11.2
 	github.com/not-for-prod/observer v0.0.7
 	github.com/pressly/goose/v3 v3.27.0
 	github.com/shopspring/decimal v1.4.0
+	github.com/sqlc-dev/pqtype v0.3.0
 	golang.org/x/crypto v0.48.0
 )
 
