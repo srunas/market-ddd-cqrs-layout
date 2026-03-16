@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/not-for-prod/observer/tracer/prospan"
 	"github.com/shopspring/decimal"
 	"github.com/srunas/market-ddd-cqrs-layout/internal/domain/entity/order"
 	"github.com/srunas/market-ddd-cqrs-layout/internal/domain/types"
@@ -22,6 +23,9 @@ func NewOrderRepository(pool *pgxpool.Pool) *OrderRepository {
 }
 
 func (r *OrderRepository) Save(ctx context.Context, o *order.Order) error {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	err := r.q.SaveOrder(ctx, sqlcgen.SaveOrderParams{
 		ID:            uuid.UUID(o.ID),
 		BuyerID:       uuid.UUID(o.BuyerID),
@@ -50,6 +54,9 @@ func (r *OrderRepository) Save(ctx context.Context, o *order.Order) error {
 }
 
 func (r *OrderRepository) FindByID(ctx context.Context, id types.OrderID) (*order.Order, error) {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	row, err := r.q.FindOrderByID(ctx, uuid.UUID(id))
 	if err != nil {
 		return nil, err
@@ -58,6 +65,9 @@ func (r *OrderRepository) FindByID(ctx context.Context, id types.OrderID) (*orde
 }
 
 func (r *OrderRepository) FindByBuyerID(ctx context.Context, buyerID types.UserID) ([]*order.Order, error) {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	rows, err := r.q.FindOrdersByBuyerID(ctx, uuid.UUID(buyerID))
 	if err != nil {
 		return nil, err
@@ -75,6 +85,9 @@ func (r *OrderRepository) FindByBuyerID(ctx context.Context, buyerID types.UserI
 }
 
 func (r *OrderRepository) Update(ctx context.Context, o *order.Order) error {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	return r.q.UpdateOrder(ctx, sqlcgen.UpdateOrderParams{
 		ID:     uuid.UUID(o.ID),
 		Status: sqlcgen.OrderStatus(o.Status),

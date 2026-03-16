@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/not-for-prod/observer/tracer/prospan"
 	"github.com/shopspring/decimal"
 	"github.com/sqlc-dev/pqtype"
 	"github.com/srunas/market-ddd-cqrs-layout/internal/domain/entity/product"
@@ -25,6 +26,9 @@ func NewProductRepository(pool *pgxpool.Pool) *ProductRepository {
 }
 
 func (r *ProductRepository) Save(ctx context.Context, p *product.Product) error {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	attrBytes, err := json.Marshal(p.Attributes)
 	if err != nil {
 		return err
@@ -52,6 +56,9 @@ func (r *ProductRepository) Save(ctx context.Context, p *product.Product) error 
 }
 
 func (r *ProductRepository) Update(ctx context.Context, p *product.Product) error {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	categoryIDs := make([]uuid.UUID, len(p.CategoryIDs))
 	for i, id := range p.CategoryIDs {
 		categoryIDs[i] = uuid.UUID(id)
@@ -70,6 +77,9 @@ func (r *ProductRepository) Update(ctx context.Context, p *product.Product) erro
 }
 
 func (r *ProductRepository) FindByID(ctx context.Context, id types.ProductID) (*product.Product, error) {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	row, err := r.q.FindProductByID(ctx, uuid.UUID(id))
 	if err != nil {
 		return nil, err
@@ -81,6 +91,9 @@ func (r *ProductRepository) GetProductList(
 	ctx context.Context,
 	filter domainrepo.ProductFilter,
 ) ([]*product.Product, error) {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	var minPrice, maxPrice sql.NullString
 	if filter.MinPrice != nil {
 		minPrice = sql.NullString{String: filter.MinPrice.String(), Valid: true}

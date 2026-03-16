@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/not-for-prod/observer/tracer/prospan"
 	"github.com/srunas/market-ddd-cqrs-layout/internal/domain/entity/auth"
 	"github.com/srunas/market-ddd-cqrs-layout/internal/domain/types"
 	"github.com/srunas/market-ddd-cqrs-layout/internal/infrastructure/repository/sqlcgen"
@@ -21,6 +22,9 @@ func NewAuthRepository(pool *pgxpool.Pool) *AuthRepository {
 }
 
 func (r *AuthRepository) Save(ctx context.Context, a *auth.Auth) error {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	return r.q.Save(ctx, sqlcgen.SaveParams{
 		ID:        uuid.UUID(a.ID),
 		Username:  a.Username(),
@@ -31,6 +35,9 @@ func (r *AuthRepository) Save(ctx context.Context, a *auth.Auth) error {
 }
 
 func (r *AuthRepository) UpdateAuth(ctx context.Context, a *auth.Auth) error {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	return r.q.UpdateAuth(ctx, sqlcgen.UpdateAuthParams{
 		Username: a.Username(),
 		AuthAt:   sql.NullTime{Valid: true, Time: a.AuthAt},
@@ -38,6 +45,9 @@ func (r *AuthRepository) UpdateAuth(ctx context.Context, a *auth.Auth) error {
 }
 
 func (r *AuthRepository) FindByUsername(ctx context.Context, username string) (*auth.Auth, error) {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	row, err := r.q.FindByUsername(ctx, username)
 	if err != nil {
 		return nil, err

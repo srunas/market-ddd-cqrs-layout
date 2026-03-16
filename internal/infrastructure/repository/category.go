@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/not-for-prod/observer/tracer/prospan"
 	"github.com/srunas/market-ddd-cqrs-layout/internal/domain/entity/category"
 	"github.com/srunas/market-ddd-cqrs-layout/internal/domain/types"
 	"github.com/srunas/market-ddd-cqrs-layout/internal/infrastructure/repository/sqlcgen"
@@ -20,6 +21,9 @@ func NewCategoryRepository(pool *pgxpool.Pool) *CategoryRepository {
 }
 
 func (r *CategoryRepository) Save(ctx context.Context, c *category.Category) error {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	var parentID uuid.NullUUID
 	if c.ParentID != nil {
 		parentID = uuid.NullUUID{UUID: uuid.UUID(*c.ParentID), Valid: true}
@@ -34,6 +38,9 @@ func (r *CategoryRepository) Save(ctx context.Context, c *category.Category) err
 }
 
 func (r *CategoryRepository) FindByID(ctx context.Context, id types.CategoryID) (*category.Category, error) {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	row, err := r.q.FindCategoryByID(ctx, uuid.UUID(id))
 	if err != nil {
 		return nil, err
@@ -42,6 +49,9 @@ func (r *CategoryRepository) FindByID(ctx context.Context, id types.CategoryID) 
 }
 
 func (r *CategoryRepository) FindByIDForUpdate(ctx context.Context, id types.CategoryID) (*category.Category, error) {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	row, err := r.q.FindCategoryByIDForUpdate(ctx, uuid.UUID(id))
 	if err != nil {
 		return nil, err
@@ -50,6 +60,9 @@ func (r *CategoryRepository) FindByIDForUpdate(ctx context.Context, id types.Cat
 }
 
 func (r *CategoryRepository) FindAll(ctx context.Context) ([]*category.Category, error) {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	rows, err := r.q.FindAllCategories(ctx)
 	if err != nil {
 		return nil, err

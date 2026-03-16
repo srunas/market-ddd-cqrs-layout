@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/not-for-prod/observer/tracer/prospan"
 	"github.com/srunas/market-ddd-cqrs-layout/internal/domain/entity/cart"
 	"github.com/srunas/market-ddd-cqrs-layout/internal/domain/types"
 	"github.com/srunas/market-ddd-cqrs-layout/internal/infrastructure/repository/sqlcgen"
@@ -21,6 +22,9 @@ func NewCartRepository(pool *pgxpool.Pool) *CartRepository {
 }
 
 func (r *CartRepository) Save(ctx context.Context, c *cart.Cart) error {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	err := r.q.SaveCart(ctx, sqlcgen.SaveCartParams{
 		ID:        uuid.UUID(c.ID),
 		BuyerID:   uuid.UUID(c.BuyerID),
@@ -43,6 +47,9 @@ func (r *CartRepository) Save(ctx context.Context, c *cart.Cart) error {
 }
 
 func (r *CartRepository) Update(ctx context.Context, c *cart.Cart) error {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	// Сохраняем каждую позицию — ON CONFLICT DO UPDATE обновит quantity
 	for _, item := range c.Items {
 		err := r.q.SaveCartItem(ctx, sqlcgen.SaveCartItemParams{
@@ -58,6 +65,9 @@ func (r *CartRepository) Update(ctx context.Context, c *cart.Cart) error {
 }
 
 func (r *CartRepository) FindByBuyerID(ctx context.Context, buyerID types.UserID) (*cart.Cart, error) {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	row, err := r.q.FindCartByBuyerID(ctx, uuid.UUID(buyerID))
 	if err != nil {
 		return nil, err

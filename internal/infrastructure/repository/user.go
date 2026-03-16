@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/not-for-prod/observer/tracer/prospan"
 	"github.com/srunas/market-ddd-cqrs-layout/internal/domain/entity/user"
 	"github.com/srunas/market-ddd-cqrs-layout/internal/domain/types"
 	"github.com/srunas/market-ddd-cqrs-layout/internal/infrastructure/repository/sqlcgen"
@@ -21,6 +22,9 @@ func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 }
 
 func (r *UserRepository) Save(ctx context.Context, u *user.User) error {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	return r.q.SaveUser(ctx, sqlcgen.SaveUserParams{
 		ID:        uuid.UUID(u.ID),
 		Username:  u.Username,
@@ -33,6 +37,9 @@ func (r *UserRepository) Save(ctx context.Context, u *user.User) error {
 }
 
 func (r *UserRepository) Update(ctx context.Context, u *user.User) error {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	return r.q.UpdateUser(ctx, sqlcgen.UpdateUserParams{
 		ID:       uuid.UUID(u.ID),
 		Username: u.Username,
@@ -43,6 +50,9 @@ func (r *UserRepository) Update(ctx context.Context, u *user.User) error {
 }
 
 func (r *UserRepository) FindByID(ctx context.Context, id types.UserID) (*user.User, error) {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	row, err := r.q.FindUserByID(ctx, uuid.UUID(id))
 	if err != nil {
 		return nil, err
@@ -51,6 +61,9 @@ func (r *UserRepository) FindByID(ctx context.Context, id types.UserID) (*user.U
 }
 
 func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*user.User, error) {
+	ctx, span := prospan.Start(ctx)
+	defer span.End()
+
 	row, err := r.q.FindUserByUsername(ctx, username)
 	if err != nil {
 		return nil, err
